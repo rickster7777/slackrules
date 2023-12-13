@@ -1,5 +1,5 @@
 {
-    "name": "techchefz-node-boilerplate-service",
+    "name": "slackrules",
     "version": "0.0.3",
     "description": "Boilerplate service developed by TechChefz",
     "main": "src/app.js",

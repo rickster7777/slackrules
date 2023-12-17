@@ -56,7 +56,7 @@ const ruleSchema = new mongoose.Schema({
     applyRuleTo: {
         type: String,
         enum: {
-            values: ['Campaign', 'AdGroup', 'Placement', 'Targeting', 'SearchTerm', 'Keyword', 'Asin/product_name', 'Creatives'],
+            values: ['Campaign', 'AdGroup', 'Placement', 'Targeting', 'SearchTerm', 'Keyword', 'Asin/product_name', 'Creatives', 'Placement Bid'],
             message: '{VALUE} is not supported',
         },
     },

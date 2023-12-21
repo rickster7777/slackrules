@@ -81,7 +81,7 @@ const ruleSchema = new mongoose.Schema({
         default: 'Daily',
     },
 
-    undoRedo: {
+    isAborted: {
         type: Boolean,
         default: false
     },

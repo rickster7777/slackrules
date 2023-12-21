@@ -1,10 +1,13 @@
 const express = require('express');
-const axios = require('axios');
 const bodyParser = require('body-parser');
 const Rule = require('./database/user/rules.model');
 const Action = require('./database/user/actions.model.js');
 const ActionCampMapping = require('./database/user/actionCamp.js');
 const cors = require('cors');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+
 
 require('./db.js');
 
@@ -20,6 +23,7 @@ app.get('/', (req, res) => {
   res.send('rules API!!!!');
 });
 
+// API to create slack rules
 app.post('/rules', (req, res) => {
   const requestData = req.body; // Access the data sent in the POST request
 
@@ -58,7 +62,7 @@ app.post('/rules', (req, res) => {
   res.status(200).json({ message: 'Data received successfully' });
 });
 
-
+// API to delete slack rules by Id.
 app.delete('/rules/:id', async (req, res) => {
   const ruleId = req.params.id;
 
@@ -79,6 +83,65 @@ app.delete('/rules/:id', async (req, res) => {
   }
 });
 
+// API to fetch all the rules
+app.get('/getslackrules', async (req, res) => {
+  try {
+    const slackRules = await Rule.find({});
+    res.status(200).json({ slackRules });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+
+});
+
+// API to fetch logs (true action campaign mappings).
+app.get('/logs/excecuted', async (req, res) => {
+  try {
+    // Find unexecuted campaigns with unique campaign_id
+    const campaigns = await ActionCampMapping.find({ isExecuted: true, campaign_id: { $ne: null } });
+
+    // Check for results
+    if (!campaigns.length) {
+      return res.status(404).json({ message: 'No campaign logs found' });
+    }
+    // Send successful response
+    res.status(200).json({ campaigns });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// API to execute abort (undo/redo)
+app.post('/aborted/:rule_id', async (req, res) => {
+  try {
+    // Get the campaign_id from the request parameter
+    const rulesId = req.params.rule_id;
+    const op = req.query.undo;
+
+    const campaign = await Rule.findOne({ _id: rulesId });
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    campaign.isAborted = op !== 'false';
+
+    await campaign.save();
+
+    res.status(200).json({ message: 'Rule undo operation executed successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+// APIs for the plugin
+
+// API to fetch actions and campaigns mapping for the plugin.
 app.get('/campaigns/unexcecuted', async (req, res) => {
   try {
     // Find unexecuted campaigns with unique campaign_id
@@ -96,6 +159,7 @@ app.get('/campaigns/unexcecuted', async (req, res) => {
   }
 });
 
+// API to make campaign's isExecuted true from the plugin
 app.post('/campaigns/execute/:campaign_id', async (req, res) => {
   try {
     // Get the campaign_id from the request parameter
@@ -121,6 +185,11 @@ app.post('/campaigns/execute/:campaign_id', async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('App listening on port 3000!!');
-});
+const privateKey = fs.readFileSync(path.join(__dirname, 'private.key'));
+const certificate = fs.readFileSync(path.join(__dirname, './bundle.crt'));
+
+https.createServer({
+    key: privateKey,
+    cert: certificate
+}, app).listen(3000);
+
